@@ -115,6 +115,7 @@
       "goal" : 1000,
       "dollar" : "NT$",
       "currency" : "NTD",
+      "streamer_twitch" : "",
       "cmd_twitch" : [],
       "cheer_rate" : 0.3,
       "opay" : "",
@@ -130,7 +131,9 @@
     for (const key in data) {
       switch (typeof data[key]) {
         case "object":
-          if (Array.isArray(data[key])) data_types.array.push(key);
+          if (Array.isArray(data[key]) && data[key].length !== 0) {
+            data_types.array.push(key);
+          }
           break;
         case "number":
           data_types.number.push(key);
@@ -182,6 +185,9 @@
     }
     function updateData(obj) {
       Object.assign(data, obj);
+      if (!data.cmd_twitch.includes(data.streamer_twitch)) {
+        data.cmd_twitch.push(data.streamer_twitch);
+      }
       return data;
     }
     function updatePreview(defaults, hash) {
@@ -259,7 +265,8 @@
     function twitch() {
       const counted = [];
       const channels = ["#sarumoecmd"];
-      if (data.twitch) channels.push("#" + data.twitch);
+      if (data.streamer_twitch) channels.push("#"+data.streamer_twitch);
+      if (data.twitch) channels.push("#"+data.twitch);
       const client = new tmi.Client({channels});
       client.on("message", (channel, tags, message, self) => {
         if (channels.includes(channel) &&
@@ -268,13 +275,15 @@
           cmd(message.substr(15));
         }
       });
-      client.on("cheer", (channel, tags, message) => {
-        const id = tags.id
-        if (!counted.includes(id)) {
-          incrementCheer(parseInt(tags.bits.match(/\d+/)));
-          counted.push(id);
-        }
-      });
+      if (data.twitch) {
+        client.on("cheer", (channel, tags, message) => {
+          const id = tags.id
+          if (!counted.includes(id)) {
+            incrementCheer(parseInt(tags.bits.match(/\d+/)));
+            counted.push(id);
+          }
+        });
+      }
       client.connect();
     }
 
