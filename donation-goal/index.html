@@ -27,14 +27,14 @@
 
 <body>
   <p>我很懶，所以這網頁做的很隨興。</p>
-  <p><b>因為我暫時不想搞太複雜特別架伺服器，所以抖內的進度是存在OBS網頁內的。</b></p>
+  <p><b>因為我暫時不想搞太複雜特別架伺服器，所以抖內的進度是存在OBS網頁內的，如何控制金額請看下方說明。</b></p>
   <p><a href="https://wiki.saru.moe/streaming:streaming-stuff:donation-goal">說明看這</a></p>
   <p>
     <label for="preview">預覽</label><br>
     <iframe id="preview" width="600" height="128" src="widget.html#preview=1"></iframe>
   </p>
   <p class="input">
-    <label for="url">網址(如果要更改設定，請將原網址貼在這邊)</label><br>
+    <label for="url">網址(<b>這邊就是貼到OBS裡的網址</b>，如果要更改設定，請將OBS裡面原本的網址貼在這邊之後再調整)</label><br>
     <input type="text" id="url">
   </p>
   <p class="input">
@@ -42,7 +42,7 @@
     <input type="text" id="title">
   </p>
   <p class="input">
-    <label for="mode">標題(抖內的目的文字)</label><br>
+    <label for="mode">顯示樣式</label><br>
     <select id="mode">
       <option value="normal">標準</option>
       <option value="tiny">迷你</option>
@@ -73,7 +73,7 @@
     <input type="text" id="streamer_twitch">
   </p>
   <p class="input">
-    <label for="cmd_twitch">Twitch 控制台帳號清單(空白分隔，如果上面有的就可以省略，頻道主會自動進入清單)</label><br>
+    <label for="cmd_twitch">可使用指令 Twitch 帳號清單(空白分隔，如果上面有填的就可以省略，頻道主會自動進入清單)</label><br>
     <input type="text" id="cmd_twitch" data-type="array">
   </p>
   <p class="input">
@@ -82,7 +82,7 @@
   </p>
   <div class="panel folded" id="panel-opay">
     <p class="input">
-      <label for="opay">歐付寶ID(可以貼上收款或動畫網址，會自動擷取)</label><br>
+      <label for="opay">歐付寶贊助碼(可以貼上收款或動畫網址，會自動擷取)</label><br>
       <input type="text" id="opay">
     </p>
   </div>
@@ -92,7 +92,7 @@
   </p>
   <div class="panel folded" id="panel-ecpay">
     <p class="input">
-      <label for="ecpay">綠界ID(可以貼上收款或動畫網址，會自動擷取)</label><br>
+      <label for="ecpay">綠界贊助碼(可以貼上收款或動畫網址，會自動擷取)</label><br>
       <input type="text" id="ecpay">
     </p>
   </div>
