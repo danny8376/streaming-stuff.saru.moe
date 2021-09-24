@@ -131,7 +131,7 @@
     for (const key in data) {
       switch (typeof data[key]) {
         case "object":
-          if (Array.isArray(data[key]) && data[key].length !== 0) {
+          if (Array.isArray(data[key])) {
             data_types.array.push(key);
           }
           break;
@@ -185,7 +185,8 @@
     }
     function updateData(obj) {
       Object.assign(data, obj);
-      if (!data.cmd_twitch.includes(data.streamer_twitch)) {
+      if (data.streamer_twitch &&
+          !data.cmd_twitch.includes(data.streamer_twitch)) {
         data.cmd_twitch.push(data.streamer_twitch);
       }
       return data;
@@ -243,7 +244,6 @@
       }
     }
     function incrementCheer(val) {
-      console.log(data.cheer_rate || (rate("USD") / 100))
       increment(val * (data.cheer_rate || (rate("USD") / 100)));
     }
 

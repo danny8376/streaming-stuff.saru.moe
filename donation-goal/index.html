@@ -157,9 +157,10 @@
       inputs.forEach(k => {
         const dom = $("#"+k);
         const val = dom.type === "checkbox" ? dom.checked : dom.value;
+        const isAry = dom.getAttribute("data-type") === "array";
         if ((!dom.parentEnabled || dom.parentEnabled()) &&
-            val != defaults[k]) {
-          if (dom.getAttribute("data-type") === "array") {
+            (isAry ? val != defaults[k].join(" ") : val != defaults[k])) {
+          if (isAry) {
             val.split(" ").forEach(v => params.append(k, v));
           } else {
             params.append(k, val);
