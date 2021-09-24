@@ -29,6 +29,7 @@
     }
     .bar-slot {
       background: lightgray;
+      overflow: hidden;
     }
     .bar {
       background: green;
@@ -333,9 +334,11 @@
     }
 
     init();
-    twitch();
-    if (data.opay) opay();
-    if (data.ecpay) ecpay();
+    if (!data.preview) {
+      twitch();
+      if (data.opay) opay();
+      if (data.ecpay) ecpay();
+    }
   </script>
 </body>
 </html>
