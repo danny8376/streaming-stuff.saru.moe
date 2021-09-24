@@ -355,8 +355,8 @@
     } catch (ex) {
     }
 
-    init();
     if (!data.preview) {
+      init();
       twitch();
       if (data.opay) opay();
       if (data.ecpay) ecpay();
