@@ -142,6 +142,10 @@
 
     const iframe = document.querySelector("#preview");
 
+    function deepClone(target, ...objs) {
+      return Object.assign(target, ...JSON.parse(JSON.stringify(objs)));
+    }
+
     function updatePanel(p) {
       const checkbox = $(`#enable-${p}`);
       const panel = $(`#panel-${p}`);
@@ -170,7 +174,8 @@
       const hash = params.toString();
       outUrl.hash = "#"+hash;
       urlDom.value = outUrl.href;
-      iframe.contentWindow.updatePreview(defaults, hash);
+      const copied = deepClone({}, defaults);
+      iframe.contentWindow.updatePreview(copied, hash);
     }
     function applyFromUrl() {
       const obj = iframe.contentWindow.Object.fromHash(new URL(urlDom.value).hash.slice(1));
@@ -203,7 +208,7 @@
     });
 
     iframe.addEventListener("load", () => {
-      Object.assign(defaults, iframe.contentWindow.data);
+      deepClone(defaults, iframe.contentWindow.data)
       Object.keys(defaults).forEach(k => {
         if ($("#"+k)) inputs.push(k);
       });
