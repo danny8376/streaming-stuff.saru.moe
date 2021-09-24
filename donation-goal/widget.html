@@ -229,6 +229,8 @@
       to = to || data.currency;
       if (from === "USD" && to === "NTD") {
         return 27.7;
+      } else if (from === "USD" && to === "JPY") {
+        return 110.7;
       } else {
         return 1;
       }
