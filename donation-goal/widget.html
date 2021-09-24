@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title> 抖內進度條 </title>
+  <meta name="author" content="DannyAAM">
+
+  <script src="tmi.min.js"></script>
+
+  <style>
+    :root {
+      --outline-color: #fff;
+    }
+
+    .box {
+      width: 100%;
+      font-size: 24px;
+      font-weight: bold;
+    }
+    .bar-slot {
+      position: relative;
+    }
+    .bar-slot,
+    .bar {
+      margin: 0;
+      height: 1.25em;
+    }
+    .bar-slot {
+      background: lightgray;
+    }
+    .bar {
+      background: green;
+      width: 0;
+      transition: width 1s ease-in-out;
+    }
+    .current {
+      position: absolute;
+      top: 0;
+      width: 100%;
+      text-align: center;
+    }
+    .box .normal,
+    .box .tiny {
+      display: none;
+    }
+
+    .box.normal .title.normal,
+    .box.normal .min.normal,
+    .box.normal .max.normal {
+      display: block;
+      text-shadow:
+        -1px -1px 0 var(--outline-color),
+        1px -1px  0 var(--outline-color),
+        -1px 1px  0 var(--outline-color),
+        1px 1px   0 var(--outline-color);
+    }
+    .box.normal .title.normal {
+      width: 100%;
+      text-align: center;
+      margin-bottom: .25em;
+    }
+    .box.normal .min {
+      float: left;
+    }
+    .box.normal .max {
+      float: right;
+    }
+
+
+    .box.tiny .title.tiny,
+    .box.tiny .min.tiny,
+    .box.tiny .max.tiny {
+      display: block;
+    }
+    .box.tiny .title {
+      float: left;
+    }
+    .box.tiny .max {
+      float: right;
+    }
+    .box.normal .title,
+    .box.normal .min,
+    .box.normal .max {
+      text-shadow:
+        -1px -1px 0 var(--outline-color),
+        1px -1px  0 var(--outline-color),
+        -1px 1px  0 var(--outline-color),
+        1px 1px   0 var(--outline-color);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="box">
+    <div class="title normal"></div>
+    <div class="bar-slot">
+      <div class="title tiny"></div>
+      <div class="max tiny"></div>
+      <div class="bar"></div>
+      <div class="current"></div>
+    </div>
+    <div class="min normal"></div>
+    <div class="max normal"></div>
+  </div>
+  <script>
+    let data = {
+      "corsproxy" : "https://cors.bridged.cc",
+      //"corsproxy" : "http://10.250.150.95:33380",
+      "title" : "我是個進度條",
+      "mode" : "normal",
+      "init" : 200,
+      "goal" : 1000,
+      "dollar" : "NT$",
+      "currency" : "NTD",
+      "cmd_twitch" : [],
+      "cheer_rate" : 0.3,
+      "opay" : "",
+      "ecpay" : "",
+      "twitch" : "",
+      "reset" : false
+    };
+    var data_types = {
+      array: [],
+      number: [],
+      bool: []
+    }
+    for (const key in data) {
+      switch (typeof data[key]) {
+        case "object":
+          if (Array.isArray(data[key])) data_types.array.push(key);
+          break;
+        case "number":
+          data_types.number.push(key);
+          break;
+        case "boolean":
+          data_types.bool.push(key);
+          break;
+      }
+    }
+
+    const $ = document.querySelector.bind(document);
+    Number.prototype.toS = function() {
+      return Number.isInteger(this.valueOf()) ? this.toString() : this.toFixed(2);
+    }
+    Object.fromHash = (hash) => {
+      hash = hash || location.hash;
+      if (hash.startsWith("#")) hash = hash.slice(1)
+      const params = (new URLSearchParams(hash));
+      const obj = {};
+      for (const [key, val] of params) {
+        objVal = obj[key];
+        if (objVal) {
+          if (Array.isArray(objVal)) {
+            objVal.push(val);
+          } else {
+            obj[key] = [objVal, val];
+          }
+        } else {
+          obj[key] = val;
+        }
+      }
+      return obj;
+    }
+    function updateData(obj) {
+      Object.assign(data, obj);
+      data_types.array.forEach(key => {
+        if (!Array.isArray(data[key])) {
+          data[key] = [data[key]];
+        }
+      });
+      data_types.number.forEach(key => {
+        data[key] = parseFloat(data[key]);
+      });
+      data_types.bool.forEach(key => {
+        const val = data[key];
+        data[key] = val === "true" || val === "1";
+      });
+      return data;
+    }
+
+    function corsFetch(url, init) {
+      return fetch(`${data.corsproxy}/${url}`, init);
+    }
+    function setText(selector, value) {
+      document.querySelectorAll(selector).forEach(ele => {
+        ele.innerHTML = value;
+      });
+    }
+    function $$(val) {
+      return data.dollar + val.toS();
+    }
+
+    function updateBalance(val) {
+      localStorage.setItem("donation-goal-current", data.current = val);
+      const percent = (val * 100 / data.goal).toS() + "%";
+      $(".bar").style.width = percent;
+      switch (data.mode) {
+        case "normal":
+          setText(".current", `${$$(val)} (${percent})`);
+          break;
+        case "tiny":
+          setText(".current", percent)
+          setText(".max", `${$$(val)}/${data.goal}`);
+          break;
+      }
+    }
+    function increment(val) {
+      updateBalance(data.current + val);
+    }
+    function rate(from, to) {
+      to = to || data.currency;
+      if (from === "USD" && to === "NTD") {
+        return 27.7;
+      } else {
+        return 1;
+      }
+    }
+    function incrementCurrency(currency, val) {
+      if (currency === data.currency) {
+        increment(val);
+      } else {
+        increment(val * rate(currency));
+      }
+    }
+    function incrementCheer(val) {
+      console.log(data.cheer_rate || (rate("USD") / 100))
+      increment(val * (data.cheer_rate || (rate("USD") / 100)));
+    }
+
+    function cmd(msg) {
+      const [cmd, ...args] = msg.split(" ");
+      switch (cmd) {
+        case "reset":
+          updateBalance(data.init);
+          break;
+        case "zero":
+          updateBalance(0);
+          break;
+        case "set":
+          updateBalance(parseFloat(args[0]));
+          break;
+        case "inc":
+          increment(parseFloat(args[0]));
+          break;
+      }
+    }
+    function twitch() {
+      const counted = [];
+      const channels = ["#sarumoecmd"];
+      if (data.twitch) channels.push("#" + data.twitch);
+      const client = new tmi.Client({channels});
+      client.on("message", (channel, tags, message, self) => {
+        if (channels.includes(channel) &&
+            data.cmd_twitch.includes(tags.username) &&
+            message.startsWith("!donation-goal:")) {
+          cmd(message.substr(15));
+        }
+      });
+      client.on("cheer", (channel, tags, message) => {
+        const id = tags.id
+        if (!counted.includes(id)) {
+          incrementCheer(parseInt(tags.bits.match(/\d+/)));
+          counted.push(id);
+        }
+      });
+      client.connect();
+    }
+
+    function oecpay(platform, url) {
+      const storageKey = `donation-goal-counted-${platform}`;
+      let counted;
+      try {
+        counted = JSON.parse(localStorage.getItem(storageKey));
+      } catch (ex) {
+      }
+      counted = counted || [];
+      const check = () => {
+        corsFetch(url, {
+          method: "POST"
+        }).then(res => {
+          res.json().then(json => {
+            const ids = [];
+            (json.lstDonate || json).forEach(donate => {
+              const id = donate.donateid;
+              ids.push(id);
+              if (!counted.includes(id)) {
+                counted.push(id);
+                incrementCurrency("NTD", donate.amount);
+              }
+            });
+            counted = counted.filter(val => ids.includes(val));
+            localStorage.setItem(storageKey, JSON.stringify(counted));
+          })
+        }).catch(ex => {
+          // just ignore now
+        });
+
+        setTimeout(check, 5000);
+      };
+      check();
+    }
+    function opay() {
+      oecpay("opay", `https://payment.opay.tw/Broadcaster/CheckDonate/${data.opay}`);
+    }
+    function ecpay() {
+      oecpay("ecpay", `https://payment.ecpay.com.tw/Broadcaster/CheckDonate/${data.ecpay}`);
+    }
+
+    function init() {
+      setText(".title", data.title);
+      $(".box").className = "box " + data.mode;
+      setText(".min", $$(0));
+      setText(".max", $$(data.goal));
+      const cur = parseFloat(localStorage.getItem("donation-goal-current"));
+      data.current = data.reset || isNaN(cur) ? data.init : cur;
+      updateBalance(data.current);
+    }
+
+    try {
+      updateData(Object.fromHash());
+    } catch (ex) {
+    }
+
+    init();
+    twitch();
+    if (data.opay) opay();
+    if (data.ecpay) ecpay();
+  </script>
+</body>
+</html>
