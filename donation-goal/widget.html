@@ -123,6 +123,7 @@
       "twitch" : "",
       "reset" : false
     };
+    window.rates = {};
     const data_types = {
       array: [],
       number: [],
@@ -209,6 +210,26 @@
       return data.dollar + val.toS();
     }
 
+    function currencyMap(cur) {
+      switch (cur) {
+        case "NTD":
+          return "TWD";
+        default:
+          return cur;
+      }
+    }
+    async function pullRates(base) {
+      base = currencyMap(base || data.currency);
+      const url = `https://api.exchangerate.host/latest?base=${base}`;
+      const res = await fetch(url);
+      const json = await res.json();
+      const rates = window.rates[base] = {};
+      for (k in json.rates) {
+        rates[k] = 1 / json.rates[k];
+      }
+      return rates;
+    }
+
     function updateBalance(val) {
       if (!data.preview) localStorage.setItem("donation-goal-current", data.current = val);
       const percent = (val * 100 / data.goal).toS() + "%";
@@ -226,25 +247,26 @@
     function increment(val) {
       updateBalance(data.current + val);
     }
-    function rate(from, to) {
-      to = to || data.currency;
-      if (from === "USD" && to === "NTD") {
-        return 27.7;
-      } else if (from === "USD" && to === "JPY") {
-        return 110.7;
+    async function rate(from, to) {
+      from = currencyMap(from);
+      to = currencyMap(to || data.currency);
+      const rates = window.rates[to];
+      if (rates) {
+        return rates[from];
       } else {
-        return 1;
+        const rates = await pullRates(to);
+        return rates[from];
       }
     }
-    function incrementCurrency(currency, val) {
+    async function incrementCurrency(currency, val) {
       if (currency === data.currency) {
         increment(val);
       } else {
-        increment(val * rate(currency));
+        increment(val * await rate(currency));
       }
     }
-    function incrementCheer(val) {
-      increment(val * (data.cheer_rate || (rate("USD") / 100)));
+    async function incrementCheer(val) {
+      increment(val * (data.cheer_rate || (await rate("USD") / 100)));
     }
 
     function cmd(msg) {
