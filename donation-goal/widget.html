@@ -287,7 +287,16 @@
               ids.push(id);
               if (!counted.includes(id)) {
                 counted.push(id);
+                const test_donate = donate.name === "XXX" &&
+                                    donate.amount === 100 &&
+                                    donate.msg === "這是一筆贊助測試～";
                 incrementCurrency("NTD", donate.amount);
+                // test => rollback
+                if (test_donate) {
+                  setTimeout(() => {
+                    incrementCurrency("NTD", -donate.amount);
+                  }, 1000);
+                }
               }
             });
             counted = counted.filter(val => ids.includes(val));
