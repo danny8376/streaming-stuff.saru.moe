@@ -106,7 +106,7 @@
     <div class="max normal"></div>
   </div>
   <script>
-    let data = {
+    window.data = {
       "corsproxy" : "https://cors.bridged.cc",
       //"corsproxy" : "http://10.250.150.95:33380",
       "title" : "我是個進度條",
@@ -122,7 +122,7 @@
       "twitch" : "",
       "reset" : false
     };
-    var data_types = {
+    const data_types = {
       array: [],
       number: [],
       bool: []
@@ -162,23 +162,32 @@
           obj[key] = val;
         }
       }
+      data_types.array.forEach(key => {
+        if (obj.hasOwnProperty(key) && !Array.isArray(obj[key])) {
+          obj[key] = [obj[key]];
+        }
+      });
+      data_types.number.forEach(key => {
+        if (obj.hasOwnProperty(key)) {
+          obj[key] = parseFloat(obj[key]);
+        }
+      });
+      data_types.bool.forEach(key => {
+        if (obj.hasOwnProperty(key)) {
+          const val = obj[key];
+          obj[key] = val === "true" || val === "1";
+        }
+      });
       return obj;
     }
     function updateData(obj) {
       Object.assign(data, obj);
-      data_types.array.forEach(key => {
-        if (!Array.isArray(data[key])) {
-          data[key] = [data[key]];
-        }
-      });
-      data_types.number.forEach(key => {
-        data[key] = parseFloat(data[key]);
-      });
-      data_types.bool.forEach(key => {
-        const val = data[key];
-        data[key] = val === "true" || val === "1";
-      });
       return data;
+    }
+    function updatePreview(defaults, hash) {
+      Object.assign(data, defaults);
+      updateData(Object.fromHash(hash));
+      init();
     }
 
     function corsFetch(url, init) {
@@ -194,7 +203,7 @@
     }
 
     function updateBalance(val) {
-      localStorage.setItem("donation-goal-current", data.current = val);
+      if (!data.preview) localStorage.setItem("donation-goal-current", data.current = val);
       const percent = (val * 100 / data.goal).toS() + "%";
       $(".bar").style.width = percent;
       switch (data.mode) {
@@ -273,7 +282,7 @@
       const storageKey = `donation-goal-counted-${platform}`;
       let counted;
       try {
-        counted = JSON.parse(localStorage.getItem(storageKey));
+        if (!data.preview) counted = JSON.parse(localStorage.getItem(storageKey));
       } catch (ex) {
       }
       counted = counted || [];
@@ -323,9 +332,13 @@
       $(".box").className = "box " + data.mode;
       setText(".min", $$(0));
       setText(".max", $$(data.goal));
-      const cur = parseFloat(localStorage.getItem("donation-goal-current"));
-      data.current = data.reset || isNaN(cur) ? data.init : cur;
-      updateBalance(data.current);
+      if (data.preview) {
+        updateBalance(data.init);
+      } else {
+        const cur = parseFloat(localStorage.getItem("donation-goal-current"));
+        data.current = data.reset || isNaN(cur) ? data.init : cur;
+        updateBalance(data.current);
+      }
     }
 
     try {

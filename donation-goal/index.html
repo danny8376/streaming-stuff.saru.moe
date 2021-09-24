@@ -7,9 +7,247 @@
   <title> 抖內進度條 </title>
   <meta name="author" content="DannyAAM">
   <style>
+    #preview {
+      border: 1px lightgray solid;
+    }
+    p.input {
+      margin: .25em;
+    }
+    .panel {
+      border: 1px lightgray solid;
+      margin-left: .75em;
+      overflow: hidden;
+      transition: height 1s ease;
+    }
+    .panel.folded {
+      display: none;
+    }
   </style>
 </head>
 
 <body>
+  <p>我很懶，所以這網頁做的很隨興。</p>
+  <p>
+    <label for="preview">預覽</label><br>
+    <iframe id="preview" width="600" height="128" src="widget.html#preview=1"></iframe>
+  </p>
+  <p class="input">
+    <label for="url">網址(如果要更改設定，請將原網址貼在這邊)</label><br>
+    <input type="text" id="url">
+  </p>
+  <p class="input">
+    <label for="title">標題(抖內的目的文字)</label><br>
+    <input type="text" id="title">
+  </p>
+  <p class="input">
+    <label for="mode">標題(抖內的目的文字)</label><br>
+    <select id="mode">
+      <option value="normal">標準</option>
+      <option value="tiny">迷你</option>
+    </select>
+  </p>
+  <p class="input">
+    <label for="init">起始金額</label><br>
+    <input type="number" id="init">
+  </p>
+  <p class="input">
+    <label for="goal">目標金額</label><br>
+    <input type="number" id="goal">
+  </p>
+  <p class="input">
+    <label for="dollar">貨幣符號(顯示用)</label><br>
+    <input type="text" id="dollar">
+  </p>
+  <p class="input">
+    <label for="currency">使用貨幣(轉換用)</label><br>
+    <select id="currency">
+      <option value="NTD">新台幣</option>
+      <option value="USD">美金</option>
+      <option value="JPY">日圓</option>
+    </select>
+  </p>
+  <p class="input">
+    <label for="cmd_twitch">Twitch 控制台帳號清單(空白分隔)</label><br>
+    <input type="text" id="cmd_twitch" data-type="array">
+  </p>
+  <p class="input">
+    <input type="checkbox" id="enable-opay">
+    <label for="enable-opay">使用歐付寶</label>
+  </p>
+  <div class="panel folded" id="panel-opay">
+    <p class="input">
+      <label for="opay">歐付寶ID(可以貼上收款或動畫網址，會自動擷取)</label><br>
+      <input type="text" id="opay">
+    </p>
+  </div>
+  <p class="input">
+    <input type="checkbox" id="enable-ecpay">
+    <label for="enable-ecpay">使用綠界</label>
+  </p>
+  <div class="panel folded" id="panel-ecpay">
+    <p class="input">
+      <label for="ecpay">綠界ID(可以貼上收款或動畫網址，會自動擷取)</label><br>
+      <input type="text" id="ecpay">
+    </p>
+  </div>
+  <p class="input">
+    <input type="checkbox" id="enable-twitch">
+    <label for="enable-twitch">使用Twitch小奇點</label>
+  </p>
+  <div class="panel folded" id="panel-twitch">
+    <p class="input">
+      <label for="twitch">Twitch頻道名稱</label><br>
+      <input type="text" id="twitch">
+    </p>
+    <p class="input">
+      <label for="twitch">小奇點匯率(0為使用美分匯率換算)</label><br>
+      <input type="number" id="cheer_rate" step=".001">
+    </p>
+  </div>
+  <script>
+    const $ = document.querySelector.bind(document);
+    const defaults = {};
+    const outUrl = new URL("widget.html", location.href);
+    const urlDom = $("#url");
+    const inputs = [];
+    const panels = ["opay", "ecpay", "twitch"];
+    const transforms = {
+      opay(val) {
+        val = val.trim();
+        if (val.startsWith("https://payment.opay.tw/Broadcaster/")) {
+          return val.slice(val.lastIndexOf("/")+1);
+        } else {
+          return val;
+        }
+      },
+      async ecpay(val) {
+        val = val.trim();
+        if (val.startsWith("https://payment.ecpay.com.tw/Broadcaster/")) {
+          return val.slice(val.lastIndexOf("/")+1);
+        } else if (val.startsWith("https://p.ecpay.com.tw/")) {
+          const res = await iframe.contentWindow.corsFetch("https://p.ecpay.com.tw/AE57182");
+          val = res.headers.get("x-final-url");
+          return val.slice(val.lastIndexOf("/")+1);
+        } else {
+          return val;
+        }
+      }
+    };
+
+    const iframe = document.querySelector("#preview");
+
+    function updatePanel(p) {
+      const checkbox = $(`#enable-${p}`);
+      const panel = $(`#panel-${p}`);
+      if (checkbox.checked) {
+        panel.classList.remove("folded");
+      } else {
+        panel.classList.add("folded");
+      }
+    }
+
+    function updateUrlAndPreview() {
+      const params = new URLSearchParams();
+      inputs.forEach(k => {
+        const dom = $("#"+k);
+        const val = dom.type === "checkbox" ? dom.checked : dom.value;
+        if ((!dom.parentEnabled || dom.parentEnabled()) &&
+            val != defaults[k]) {
+          if (dom.getAttribute("data-type") === "array") {
+            val.split(" ").forEach(v => params.append(k, v));
+          } else {
+            params.append(k, val);
+          }
+        }
+      });
+      const hash = params.toString();
+      outUrl.hash = "#"+hash;
+      urlDom.value = outUrl.href;
+      iframe.contentWindow.updatePreview(defaults, hash);
+    }
+    function applyFromUrl() {
+      const obj = iframe.contentWindow.Object.fromHash(new URL(urlDom.value).hash.slice(1));
+      const enabledPanels = [];
+      const evt = new Event("change");
+      for (k in obj) {
+        const dom = $("#"+k)
+        const val = obj[k];
+        if (dom) {
+          if (dom.panelName) enabledPanels.push(dom.panelName);
+          if (Array.isArray(val)) {
+            dom.value = val.join(" ");
+          } else if (dom.type === "checkbox") {
+            dom.checked = val;
+          } else {
+            dom.value = val;
+          }
+          dom.dispatchEvent(evt);
+        }
+      }
+      panels.forEach(p => {
+        const checkbox = $(`#enable-${p}`);
+        checkbox.checked = enabledPanels.includes(p);
+        checkbox.dispatchEvent(evt);
+      });
+    }
+
+    urlDom.addEventListener("change", () => {
+      applyFromUrl();
+    });
+
+    iframe.addEventListener("load", () => {
+      Object.assign(defaults, iframe.contentWindow.data);
+      Object.keys(defaults).forEach(k => {
+        if ($("#"+k)) inputs.push(k);
+      });
+
+      [...inputs, ...panels.map(p=>`enable-${p}`)].forEach(k => {
+        const storageKey = `donation-goal-settings-${k}`;
+        const val = localStorage.getItem(storageKey) || defaults[k];
+        const dom = $("#"+k);
+        const updateVal = async (val) => {
+          const transform = transforms[k];
+          if (transform) {
+            dom.value = "轉換中，請稍後...";
+            dom.value = val = await Promise.resolve(transform(val));
+          }
+          localStorage.setItem(storageKey, val);
+          updateUrlAndPreview();
+        };
+        if (dom.type === "checkbox") {
+          dom.checked = val === "true";
+          if (k.startsWith("enable-")) {
+            updatePanel(k.slice(7));
+          }
+          dom.addEventListener("change", (evt) => {
+            updateVal(dom.checked);
+          });
+        } else {
+          dom.value = val;
+          dom.addEventListener("change", (evt) => {
+            updateVal(dom.value)
+          });
+        }
+      });
+
+      panels.forEach(p => {
+        const checkbox = $(`#enable-${p}`);
+        const panel = $(`#panel-${p}`);
+        checkbox.addEventListener("change", (evt) => {
+          updatePanel(p);
+        });
+        panel.querySelectorAll("input, select, textarea").forEach(dom => {
+          if (inputs.includes(dom.id)) {
+            dom.panelName = p;
+            dom.parentEnabled = () => {
+              return checkbox.checked;
+            }
+          }
+        });
+      });
+
+      updateUrlAndPreview(); // init
+    }, { once: true });
+  </script>
 </body>
 </html>
