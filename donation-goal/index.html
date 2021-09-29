@@ -131,7 +131,7 @@
         if (val.startsWith("https://payment.ecpay.com.tw/Broadcaster/")) {
           return val.slice(val.lastIndexOf("/")+1);
         } else if (val.startsWith("https://p.ecpay.com.tw/")) {
-          const res = await iframe.contentWindow.corsFetch("https://p.ecpay.com.tw/AE57182");
+          const res = await iframe.contentWindow.corsFetch(val);
           val = res.headers.get("x-final-url");
           return val.slice(val.lastIndexOf("/")+1);
         } else {
