@@ -199,6 +199,13 @@
     }
 
     function corsFetch(url, init) {
+      if (data.corsproxy === "https://cors.bridged.cc") {
+        Object.assign(init, {
+          headers: {
+            "x-cors-grida-api-key": "EF9C6AD43D18BDF521EE57834C873"
+          }
+        });
+      }
       return fetch(`${data.corsproxy}/${url}`, init);
     }
     function setText(selector, value) {
